@@ -19,6 +19,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O ParkLog precisa da câmara para fotografar os teus carros."
+        }
+      ]
+    ]
   }
 }
