@@ -29,6 +29,12 @@
     },
     "plugins": [
       [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "O ParkLog guarda na tua galeria as fotos que tiras, se ativares essa opção."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "O ParkLog precisa da câmara para fotografar os teus carros."
