@@ -5,7 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0A0A",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.miguel.parklog",
@@ -38,6 +39,21 @@
         "expo-image-picker",
         {
           "cameraPermission": "O ParkLog precisa da câmara para fotografar os teus carros."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O ParkLog usa a tua localização para marcar no mapa onde caçaste cada carro."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A0A0A",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
         }
       ],
       "expo-build-properties",

@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator from './TabNavigator';
 import CarDetailScreen from '../screens/CarDetailScreen';
 import { useI18n } from '../i18n/I18nContext';
+import { hideSplash } from '../utils/splash';
 import { C } from '../constants';
 
 const Stack = createNativeStackNavigator();
@@ -16,7 +17,7 @@ export default function RootNavigator() {
   const { t } = useI18n();
 
   return (
-    <NavigationContainer theme={theme}>
+    <NavigationContainer theme={theme} onReady={hideSplash}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: C.bg },

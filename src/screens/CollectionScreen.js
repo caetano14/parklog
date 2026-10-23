@@ -3,10 +3,12 @@ import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import CarCard, { useCardWidth } from '../components/CarCard';
 import EmptyState from '../components/EmptyState';
+import FiltersSheet from '../components/FiltersSheet';
 import ScreenHeader from '../components/ScreenHeader';
 import { useCars } from '../context/CarsContext';
 import { useI18n } from '../i18n/I18nContext';
 import { C, RADIUS } from '../constants';
+import { NO_FILTERS, activeFilterCount, matchesFilters, matchesQuery, searchTerms } from '../utils/filters';
 import { norm } from '../utils/text';
 
 // Divide uma lista em linhas de 2 cartões
@@ -16,14 +18,14 @@ const chunk = (arr) => {
   return rows;
 };
 
-// Agrupa por marca (A-Z) e achata tudo numa lista única para a FlatList:
-// [cabeçalho, linha, linha, cabeçalho, linha, ...]. `headers` guarda os índices
-// dos cabeçalhos, que ficam colados ao topo ao fazer scroll.
-function buildList(cars, query, lang, noBrand) {
-  const q = norm(query);
+// Filtra (pesquisa + filtros), agrupa por marca (A-Z) e achata tudo numa lista única para a
+// FlatList: [cabeçalho, linha, linha, cabeçalho, ...]. `headers` guarda os índices dos
+// cabeçalhos, que ficam colados ao topo ao fazer scroll.
+function buildList(cars, query, filters, lang, noBrand) {
+  const terms = searchTerms(query);
   const groups = new Map();
   for (const c of cars) {
-    if (q && !norm(c.brand).includes(q) && !norm(c.model).includes(q)) continue;
+    if (!matchesQuery(c, terms) || !matchesFilters(c, filters)) continue;
     const key = norm(c.brand) || '-';
     if (!groups.has(key)) groups.set(key, { key, title: c.brand || noBrand, cars: [] });
     groups.get(key).cars.push(c);
@@ -46,12 +48,15 @@ export default function CollectionScreen({ navigation }) {
   const { cars, loaded, numberOf } = useCars();
   const width = useCardWidth();
   const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const deferredQuery = useDeferredValue(query); // mantém a escrita fluida em coleções grandes
   const noBrand = t('collection.noBrand');
+  const activeCount = activeFilterCount(filters);
 
   const { items, headers } = useMemo(
-    () => buildList(cars, deferredQuery, lang, noBrand),
-    [cars, deferredQuery, lang, noBrand]
+    () => buildList(cars, deferredQuery, filters, lang, noBrand),
+    [cars, deferredQuery, filters, lang, noBrand]
   );
 
   const openCar = useCallback((id) => navigation.navigate('CarDetail', { id }), [navigation]);
@@ -77,25 +82,48 @@ export default function CollectionScreen({ navigation }) {
     <View style={s.root}>
       <ScreenHeader title={t('collection.title')} count={cars.length} />
 
-      <View style={s.searchBox}>
-        <Ionicons name="search" size={18} color={C.muted} />
-        <TextInput
-          style={s.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('collection.search')}
-          placeholderTextColor={C.muted}
-          selectionColor={C.text}
-          autoCorrect={false}
-          autoCapitalize="none"
-          returnKeyType="search"
-        />
-        {query ? (
-          <TouchableOpacity onPress={() => setQuery('')} hitSlop={10} accessibilityLabel={t('collection.clear')}>
-            <Ionicons name="close-circle" size={18} color={C.muted} />
-          </TouchableOpacity>
-        ) : null}
+      <View style={s.searchRow}>
+        <View style={s.searchBox}>
+          <Ionicons name="search" size={18} color={C.muted} />
+          <TextInput
+            style={s.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('collection.search')}
+            placeholderTextColor={C.muted}
+            selectionColor={C.text}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {query ? (
+            <TouchableOpacity onPress={() => setQuery('')} hitSlop={10} accessibilityLabel={t('collection.clear')}>
+              <Ionicons name="close-circle" size={18} color={C.muted} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[s.filterBtn, activeCount > 0 && s.filterBtnOn]}
+          onPress={() => setSheetOpen(true)}
+          accessibilityLabel={t('filters.title')}
+        >
+          <Ionicons name="options-outline" size={22} color={activeCount > 0 ? C.onAccent : C.text} />
+          {activeCount > 0 ? (
+            <View style={s.filterBadge}>
+              <Text style={s.filterBadgeTxt}>{activeCount}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
       </View>
+
+      <FiltersSheet
+        visible={sheetOpen}
+        filters={filters}
+        onApply={(f) => { setFilters(f); setSheetOpen(false); }}
+        onClose={() => setSheetOpen(false)}
+      />
 
       <FlatList
         data={items}
@@ -113,7 +141,11 @@ export default function CollectionScreen({ navigation }) {
             <EmptyState
               icon="search-outline"
               title={t('collection.noResults.title')}
-              text={t('collection.noResults.text', { query: query.trim() })}
+              text={
+                query.trim()
+                  ? t('collection.noResults.text', { query: query.trim() })
+                  : t('collection.noResultsFilters')
+              }
             />
           ) : (
             <EmptyState
@@ -133,7 +165,7 @@ export default function CollectionScreen({ navigation }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   searchBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, margin: 16, marginBottom: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1,
     paddingHorizontal: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: RADIUS.field,
   },
   searchInput: { flex: 1, color: C.text, fontSize: 16, paddingVertical: 12 },
@@ -146,4 +178,16 @@ const s = StyleSheet.create({
   sectionTitle: { color: C.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   sectionCount: { color: C.muted, fontSize: 14, fontWeight: '600' },
   row: { flexDirection: 'row', gap: 12, marginBottom: 14 },
+
+  searchRow: { flexDirection: 'row', gap: 10, margin: 16, marginBottom: 4 },
+  filterBtn: {
+    width: 50, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.field,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+  },
+  filterBtnOn: { backgroundColor: C.accent, borderColor: C.accent },
+  filterBadge: {
+    position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, backgroundColor: C.gold,
+  },
+  filterBadgeTxt: { color: C.onAccent, fontSize: 11, fontWeight: '800' },
 });

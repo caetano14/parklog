@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SETTINGS_KEY = '@parklog/settings';
-const DEFAULTS = { saveToGallery: false }; // desligado por defeito: só guarda na galeria se o utilizador quiser
+const DEFAULTS = { saveToGallery: false, dailyBrand: '' }; // desligado por defeito: só guarda na galeria se o utilizador quiser
 
 const SettingsContext = createContext(null);
 
@@ -15,7 +15,11 @@ export function SettingsProvider({ children }) {
       .then((raw) => {
         const saved = raw ? JSON.parse(raw) : null;
         if (saved && typeof saved === 'object') {
-          setSettings({ ...DEFAULTS, saveToGallery: saved.saveToGallery === true });
+          setSettings({
+            ...DEFAULTS,
+            saveToGallery: saved.saveToGallery === true,
+            dailyBrand: typeof saved.dailyBrand === 'string' ? saved.dailyBrand : '',
+          });
         }
       })
       .catch(() => {})

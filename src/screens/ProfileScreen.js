@@ -1,11 +1,15 @@
-import { useMemo } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import RarityChart from '../components/RarityChart';
 import ScreenHeader from '../components/ScreenHeader';
 import { useCars } from '../context/CarsContext';
 import { useSettings } from '../context/SettingsContext';
 import { LANGUAGES, useI18n } from '../i18n/I18nContext';
 import { APP_INFO, C, RADIUS, RARITIES } from '../constants';
+import { exportGarage, importGarage } from '../utils/backup';
 import { requestGalleryPermission } from '../utils/photos';
 import { norm } from '../utils/text';
 
@@ -32,8 +36,42 @@ const InfoRow = ({ label, value }) => (
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
-  const { cars } = useCars();
-  const { saveToGallery, setSetting } = useSettings();
+  const { cars, importCars } = useCars();
+  const { saveToGallery, dailyBrand, setSetting } = useSettings();
+  const [exporting, setExporting] = useState(false);
+
+  const [importing, setImporting] = useState(false);
+
+  const onImport = async () => {
+    if (importing || exporting) return;
+    setImporting(true);
+    try {
+      const result = await importGarage(cars);
+      if (!result) return; // o utilizador cancelou
+      if (result.cars.length) importCars(result.cars);
+      const lines = [t('profile.importDoneMsg', { added: result.cars.length, skipped: result.skipped })];
+      if (result.missingPhotos) lines.push(t('profile.importMissing', { missing: result.missingPhotos }));
+      Alert.alert(t('profile.importDoneTitle'), lines.join('\n'));
+    } catch (e) {
+      console.warn('Importação falhou', e);
+      Alert.alert(t('profile.importErrorTitle'), t('profile.importErrorMsg'));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const onExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportGarage();
+    } catch (e) {
+      console.warn('Exportação falhou', e);
+      Alert.alert(t('profile.exportErrorTitle'), t('profile.exportErrorMsg'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Ao ligar, pede logo a permissão; se for recusada, a opção fica desligada
   const onToggleGallery = async (next) => {
@@ -111,6 +149,20 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        <Text style={s.section}>{t('profile.dailyCar')}</Text>
+        <View style={s.block}>
+          <Text style={s.switchHint}>{t('profile.dailyCarHint')}</Text>
+          <TextInput
+            style={s.input}
+            value={dailyBrand}
+            onChangeText={(v) => setSetting('dailyBrand', v)}
+            placeholder={t('profile.dailyCarPh')}
+            placeholderTextColor={C.muted}
+            selectionColor={C.text}
+            autoCapitalize="words"
+          />
+        </View>
+
         <Text style={s.section}>{t('profile.stats')}</Text>
         <View style={s.block}>
           <View style={s.tiles}>
@@ -119,13 +171,30 @@ export default function ProfileScreen() {
           </View>
           <View style={s.divider} />
           <Text style={s.subLabel}>{t('profile.byRarity')}</Text>
-          {Object.keys(RARITIES).map((name) => (
-            <View key={name} style={s.rarityRow}>
-              <View style={[s.dot, { backgroundColor: RARITIES[name] }]} />
-              <Text style={s.rarityName}>{t(`rarity.${name}`)}</Text>
-              <Text style={s.rarityCount}>{stats.byRarity[name]}</Text>
-            </View>
-          ))}
+          <RarityChart counts={stats.byRarity} />
+        </View>
+
+        <Text style={s.section}>{t('profile.backup')}</Text>
+        <View style={s.block}>
+          <Text style={s.switchHint}>{t('profile.exportHint')}</Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            disabled={exporting || importing}
+            onPress={onExport}
+            style={[s.exportBtn, exporting && s.exportOff]}
+          >
+            {exporting ? <ActivityIndicator color={C.onAccent} /> : <Ionicons name="share-outline" size={18} color={C.onAccent} />}
+            <Text style={s.exportTxt}>{t('profile.export')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            disabled={exporting || importing}
+            onPress={onImport}
+            style={[s.importBtn, importing && s.exportOff]}
+          >
+            {importing ? <ActivityIndicator color={C.text} /> : <Ionicons name="download-outline" size={18} color={C.text} />}
+            <Text style={s.importTxt}>{t('profile.import')}</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={s.section}>{t('profile.about')}</Text>
@@ -162,6 +231,21 @@ const s = StyleSheet.create({
   switchText: { flex: 1 },
   switchTitle: { color: C.text, fontSize: 15, fontWeight: '700' },
   switchHint: { color: C.muted, fontSize: 13, lineHeight: 18, marginTop: 3 },
+  input: {
+    backgroundColor: C.field, borderWidth: 1, borderColor: C.borderStrong, borderRadius: RADIUS.field,
+    color: C.text, fontSize: 16, paddingHorizontal: 14, paddingVertical: 12, marginTop: 12,
+  },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.accent, borderRadius: RADIUS.field, paddingVertical: 14, marginTop: 14,
+  },
+  exportOff: { opacity: 0.6 },
+  exportTxt: { color: C.onAccent, fontSize: 15, fontWeight: '800' },
+  importBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10,
+    backgroundColor: C.field, borderWidth: 1, borderColor: C.borderStrong, borderRadius: RADIUS.field, paddingVertical: 14,
+  },
+  importTxt: { color: C.text, fontSize: 15, fontWeight: '800' },
 
   tiles: { flexDirection: 'row', gap: 10 },
   tile: { flex: 1, backgroundColor: C.field, borderRadius: RADIUS.field, padding: 14, gap: 4 },

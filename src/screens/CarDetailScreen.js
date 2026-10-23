@@ -2,6 +2,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import { useCars } from '../context/CarsContext';
 import { useI18n } from '../i18n/I18nContext';
 import { C, RARITIES, flagOf } from '../constants';
+import LocationMap from '../components/LocationMap';
 import { photoUri } from '../utils/photos';
 
 export default function CarDetailScreen({ route, navigation }) {
@@ -43,6 +44,8 @@ export default function CarDetailScreen({ route, navigation }) {
             </View>
           ))}
         </View>
+
+        {car.location ? <LocationMap location={car.location} color={color} title={t('detail.location')} /> : null}
 
         <Pressable style={s.remove} onPress={confirmRemove}>
           <Text style={s.removeTxt}>{t('detail.remove')}</Text>

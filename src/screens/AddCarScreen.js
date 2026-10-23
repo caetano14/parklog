@@ -5,13 +5,17 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import BrandPicker from '../components/BrandPicker';
 import Chip from '../components/Chip';
 import ScreenHeader from '../components/ScreenHeader';
 import { useCars } from '../context/CarsContext';
 import { useSettings } from '../context/SettingsContext';
 import { useI18n } from '../i18n/I18nContext';
 import { C, COUNTRIES, RADIUS, RARITIES } from '../constants';
+import { getPhotoLocation } from '../utils/location';
 import { compressPhoto, discardTemp, saveCopyToGallery } from '../utils/photos';
+import { countryOfBrand } from '../data/carBrands';
+import { calculateRarity } from '../utils/rarityEngine';
 
 const EMPTY = { photo: null, brand: '', model: '', year: '', country: '', rarity: 'Comum' };
 const MIN_YEAR = 1886;
@@ -46,9 +50,14 @@ export default function AddCarScreen({ navigation }) {
   const [f, setF] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  const [countryManual, setCountryManual] = useState(false); // true depois de o utilizador escolher o país
+  const [rarityManual, setRarityManual] = useState(false); // true depois de o utilizador escolher a raridade
   const scrollRef = useRef(null);
   const modelRef = useRef(null);
   const yearRef = useRef(null);
+  const locationRef = useRef(null); // Promise com as coordenadas da foto tirada com a câmara
+  const rarity = rarityManual ? f.rarity : calculateRarity(f.brand, f.model);
+  const country = countryManual ? f.country : (countryOfBrand(f.brand) ?? ''); // país sugerido pela marca
 
   const set = (k, v) => {
     setF((p) => ({ ...p, [k]: v }));
@@ -78,6 +87,8 @@ export default function AddCarScreen({ navigation }) {
         : await ImagePicker.launchImageLibraryAsync(PICKER_OPTIONS);
       const asset = res.canceled ? null : res.assets?.[0];
       if (!asset?.uri) return;
+      // Só a câmara captura a localização (em paralelo); a galeria deixa-a a null
+      locationRef.current = useCamera ? getPhotoLocation() : null;
 
       setBusy(true);
       // Só fotos tiradas com a câmara. A cópia é feita antes de comprimir, para a galeria
@@ -118,7 +129,7 @@ export default function AddCarScreen({ navigation }) {
     return e;
   };
 
-  const save = () => {
+  const save = async () => {
     if (busy) return;
     const e = validate();
     if (Object.keys(e).length) {
@@ -126,21 +137,30 @@ export default function AddCarScreen({ navigation }) {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
+    setBusy(true);
     try {
+      // A localização começou a ser pedida quando a foto foi tirada; aqui só se espera pelo resultado
+      const location = locationRef.current ? await locationRef.current : null;
       addCar({
         photo: f.photo,
         brand: f.brand.trim(),
         model: f.model.trim(),
         year: f.year.trim(),
-        country: f.country,
-        rarity: f.rarity,
+        country,
+        rarity,
+        location, // null se a foto veio da galeria
       });
+      locationRef.current = null;
+      setRarityManual(false);
+      setCountryManual(false);
       setF(EMPTY);
       setErrors({});
       navigation.navigate('Home');
     } catch (err) {
       console.warn('Falha ao guardar o carro', err);
       Alert.alert(t('add.saveFailTitle'), t('add.saveFailMsg'));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -182,16 +202,7 @@ export default function AddCarScreen({ navigation }) {
           <Text style={s.link}>{t('add.gallery')}</Text>
         </TouchableOpacity>
 
-        <Field
-          label={t('add.brand')}
-          value={f.brand}
-          onChangeText={(v) => set('brand', v)}
-          error={errors.brand}
-          placeholder={t('add.brandPh')}
-          autoCapitalize="words"
-          returnKeyType="next"
-          onSubmitEditing={() => modelRef.current?.focus()}
-        />
+        <BrandPicker value={f.brand} onChange={(v) => set('brand', v)} error={errors.brand} />
         <Field
           optional
           label={t('add.model')}
@@ -225,8 +236,8 @@ export default function AddCarScreen({ navigation }) {
               <Chip
                 key={c.name}
                 label={`${c.flag} ${t(`country.${c.name}`, { defaultValue: c.name })}`}
-                active={f.country === c.name}
-                onPress={() => set('country', f.country === c.name ? '' : c.name)}
+                active={country === c.name}
+                onPress={() => { setCountryManual(true); set('country', country === c.name ? '' : c.name); }}
               />
             ))}
           </View>
@@ -234,14 +245,15 @@ export default function AddCarScreen({ navigation }) {
 
         <View style={s.group}>
           <Text style={s.label}>{t('add.rarity')}</Text>
+          {!rarityManual && f.brand.trim() ? <Text style={s.hint}>{t('add.rarityAuto')}</Text> : null}
           <View style={s.chips}>
             {Object.entries(RARITIES).map(([name, color]) => (
               <Chip
                 key={name}
                 label={t(`rarity.${name}`, { defaultValue: name })}
                 color={color}
-                active={f.rarity === name}
-                onPress={() => set('rarity', name)}
+                active={rarity === name}
+                onPress={() => { set('rarity', name); setRarityManual(true); }}
               />
             ))}
           </View>
@@ -292,6 +304,7 @@ const s = StyleSheet.create({
   },
   inputError: { borderColor: C.danger },
   error: { color: C.danger, fontSize: 13 },
+  hint: { color: C.muted, fontSize: 12 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
   save: { backgroundColor: C.accent, borderRadius: RADIUS.card, paddingVertical: 16, alignItems: 'center', marginTop: 8 },

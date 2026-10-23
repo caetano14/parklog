@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '../i18n/I18nContext';
 import { C } from '../constants';
 
-export default function ScreenHeader({ title, count }) {
+export default function ScreenHeader({ title, count, badge }) {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   return (
@@ -13,6 +13,10 @@ export default function ScreenHeader({ title, count }) {
         <View style={s.counter}>
           <Text style={s.num}>{count}</Text>
           <Text style={s.lbl}>{t('unit.car', { count })}</Text>
+        </View>
+      ) : badge ? (
+        <View style={s.counter}>
+          <Text style={s.num}>{badge}</Text>
         </View>
       ) : null}
     </View>

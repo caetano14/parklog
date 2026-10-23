@@ -12,6 +12,7 @@ export const C = {
   accent: '#FAFAFA',   // botões e destaques a branco: as cores ficam reservadas à raridade
   onAccent: '#0A0A0A', // texto sobre o accent e sobre as cores de raridade (contraste ≥ 4.7:1)
   danger: '#F87171',
+  gold: '#F5C451', // conquistas desbloqueadas
 };
 
 export const RARITIES = { Comum: '#3B82F6', Raro: '#EF4444', Exótico: '#8B5CF6' };
@@ -30,10 +31,11 @@ export const COUNTRIES = [
   { name: 'Japão', flag: '🇯🇵' }, { name: 'EUA', flag: '🇺🇸' },
   { name: 'Reino Unido', flag: '🇬🇧' }, { name: 'França', flag: '🇫🇷' },
   { name: 'Suécia', flag: '🇸🇪' }, { name: 'Coreia do Sul', flag: '🇰🇷' },
+  { name: 'Espanha', flag: '🇪🇸' }, { name: 'Chéquia', flag: '🇨🇿' },
   { name: 'Portugal', flag: '🇵🇹' }, { name: 'Outro', flag: '🌍' },
 ];
 
 export const flagOf = (name) => COUNTRIES.find((c) => c.name === name)?.flag ?? '🌍';
 
 // Informação da secção "Sobre" do Perfil: substitui pelo teu nome
-export const APP_INFO = { developer: 'Miguel Caetano', version: '1.0.0' };
+export const APP_INFO = { developer: 'O teu nome', version: '1.0.0' };
