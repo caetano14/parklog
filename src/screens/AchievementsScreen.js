@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/AppText';
+import { FlashList } from '@shopify/flash-list';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../components/ScreenHeader';
 import { useAchievements } from '../context/AchievementsContext';
@@ -36,6 +39,8 @@ export default function AchievementsScreen() {
   const { results, unlocked } = useAchievements();
   const done = Object.keys(unlocked).length;
   const total = ACHIEVEMENTS.length;
+  const tabH = useBottomTabBarHeight(); // a lista passa por trás da barra de vidro
+  const listPad = { padding: 16, paddingBottom: tabH + 16 };
 
   // [cabeçalho da categoria, conquistas..., cabeçalho, conquistas...]
   const data = useMemo(
@@ -49,12 +54,12 @@ export default function AchievementsScreen() {
   return (
     <View style={s.root}>
       <ScreenHeader title={t('ach.title')} badge={`${done}/${total}`} />
-      <FlatList
+      <FlashList
         data={data}
         keyExtractor={(item) => item.key}
-        contentContainerStyle={s.list}
-        initialNumToRender={12}
-        windowSize={9}
+        contentContainerStyle={listPad}
+        getItemType={(item) => (item.header ? 'header' : 'row')}
+        drawDistance={200}
         ListHeaderComponent={
           <View style={s.summary}>
             <Text style={s.sumBig}>{done}<Text style={s.sumSmall}> / {total}</Text></Text>
@@ -68,7 +73,9 @@ export default function AchievementsScreen() {
           item.header ? (
             <Text style={s.catTitle}>{t(`ach.cat.${item.header}`)}</Text>
           ) : (
-            <Row a={item.a} lang={lang} res={results[item.a.id]} unlocked={!!unlocked[item.a.id]} />
+            <View style={s.item}>
+              <Row a={item.a} lang={lang} res={results[item.a.id]} unlocked={!!unlocked[item.a.id]} />
+            </View>
           )
         }
       />
@@ -81,12 +88,13 @@ const s = StyleSheet.create({
   list: { padding: 16, paddingBottom: 32, gap: 10 },
 
   summary: { backgroundColor: C.card, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.border, padding: 18, marginBottom: 6 },
-  sumBig: { color: C.gold, fontSize: 40, fontWeight: '800', letterSpacing: -1.2 },
+  sumBig: { fontFamily: 'display', color: C.gold, fontSize: 40, fontWeight: '800', letterSpacing: -1.2 },
   sumSmall: { color: C.muted, fontSize: 20, fontWeight: '600', letterSpacing: 0 },
   sumLabel: { color: C.muted, fontSize: 14, marginTop: 2 },
   sumBar: { marginTop: 14 },
 
-  catTitle: { color: C.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3, marginTop: 14 },
+  catTitle: { fontFamily: 'display', color: C.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3, paddingTop: 14, paddingBottom: 10 },
+  item: { paddingBottom: 10 }, // a FlashList não tem gap: espaçamento dentro da célula
 
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14,
@@ -97,7 +105,7 @@ const s = StyleSheet.create({
   badgeOn: { backgroundColor: C.gold },
   badgeOff: { backgroundColor: '#1C1C1F' },
   body: { flex: 1 },
-  title: { color: C.text, fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
+  title: { fontFamily: 'display', color: C.text, fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
   titleLocked: { color: '#71717A' },
   desc: { color: C.muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
   descLocked: { color: '#52525B' },

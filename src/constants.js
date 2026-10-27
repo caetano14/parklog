@@ -15,6 +15,12 @@ export const C = {
   gold: '#F5C451', // conquistas desbloqueadas
 };
 
+// Cada peso é uma família própria (é assim que as letras do Google Fonts funcionam no React Native)
+export const FONTS = {
+  body: { 400: 'Inter_400Regular', 500: 'Inter_500Medium', 600: 'Inter_600SemiBold', 700: 'Inter_700Bold', 800: 'Inter_800ExtraBold' },
+  display: { 400: 'Oswald_500Medium', 500: 'Oswald_500Medium', 600: 'Oswald_600SemiBold', 700: 'Oswald_700Bold', 800: 'Oswald_700Bold' },
+};
+
 export const RARITIES = { Comum: '#3B82F6', Raro: '#EF4444', Exótico: '#8B5CF6' };
 export const rarityColor = (name) => RARITIES[name] ?? C.muted;
 
@@ -37,5 +43,4 @@ export const COUNTRIES = [
 
 export const flagOf = (name) => COUNTRIES.find((c) => c.name === name)?.flag ?? '🌍';
 
-// Informação da secção "Sobre" do Perfil: substitui pelo teu nome
-export const APP_INFO = { developer: 'O teu nome', version: '1.0.0' };
+export const APP_INFO = { developer: 'Miguel Caetano', version: '1.0.0' };

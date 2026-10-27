@@ -1,41 +1,47 @@
 import { useCallback, useMemo } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import CarCard, { useCardWidth } from '../components/CarCard';
+import { Text } from '../components/AppText';
+import CarCard from '../components/CarCard';
 import EmptyState from '../components/EmptyState';
 import ScreenHeader from '../components/ScreenHeader';
 import { useCars } from '../context/CarsContext';
 import { useI18n } from '../i18n/I18nContext';
 import { C, RADIUS } from '../constants';
 
-const RECENT_LIMIT = 9;
+const RECENT_LIMIT = 4;
 
 export default function HomeScreen({ navigation }) {
   const { t } = useI18n();
   const { cars, loaded, numberOf } = useCars();
-  const width = useCardWidth();
+  const tabH = useBottomTabBarHeight(); // a lista passa por trás da barra de vidro
   const recent = useMemo(() => cars.slice(0, RECENT_LIMIT), [cars]); // a lista já vem do mais recente
+  const listPad = useMemo(() => ({ paddingHorizontal: 10, paddingBottom: tabH + 16 }), [tabH]);
 
   const openCar = useCallback((id) => navigation.navigate('CarDetail', { id }), [navigation]);
   const keyExtractor = useCallback((c) => c.id, []);
+  // A FlashList não tem espaçamento entre colunas: cada célula leva o seu próprio padding
   const renderItem = useCallback(
-    ({ item }) => <CarCard car={item} no={numberOf(item.id)} width={width} onPress={openCar} />,
-    [numberOf, width, openCar]
+    ({ item }) => (
+      <View style={s.cell}>
+        <CarCard car={item} no={numberOf(item.id)} onPress={openCar} />
+      </View>
+    ),
+    [numberOf, openCar]
   );
 
   return (
     <View style={s.root}>
       <ScreenHeader title="ParkLog" count={cars.length} />
-      <FlatList
+      <FlashList
         data={recent}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         numColumns={2}
-        columnWrapperStyle={s.row}
-        contentContainerStyle={[s.list, !recent.length && s.grow]}
-        initialNumToRender={6}
-        maxToRenderPerBatch={6}
-        windowSize={7}
+        contentContainerStyle={listPad}
+        drawDistance={200}
         ListHeaderComponent={recent.length ? <Text style={s.section}>{t('home.recent')}</Text> : null}
         ListEmptyComponent={
           loaded ? (
@@ -63,14 +69,11 @@ export default function HomeScreen({ navigation }) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  list: { padding: 16, paddingBottom: 32 },
-  grow: { flexGrow: 1 },
-  row: { gap: 12, marginBottom: 14 },
-  section: { color: C.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.2, marginBottom: 14 },
+  cell: { padding: 6 },
+  section: { fontFamily: 'display', color: C.text, fontSize: 20, fontWeight: '600', paddingHorizontal: 6, paddingTop: 16, paddingBottom: 10 },
   more: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', marginTop: 6,
-    paddingVertical: 12, paddingHorizontal: 20, borderRadius: RADIUS.pill,
-    backgroundColor: C.card, borderWidth: 1, borderColor: C.borderStrong,
+    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', marginTop: 10,
+    paddingVertical: 12, paddingHorizontal: 20, borderRadius: RADIUS.pill, backgroundColor: C.card,
   },
   moreTxt: { color: C.text, fontSize: 14, fontWeight: '700' },
 });

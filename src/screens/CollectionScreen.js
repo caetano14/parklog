@@ -1,7 +1,10 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
+import { FlashList } from '@shopify/flash-list';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import CarCard, { useCardWidth } from '../components/CarCard';
+import CarCard from '../components/CarCard';
 import EmptyState from '../components/EmptyState';
 import FiltersSheet from '../components/FiltersSheet';
 import ScreenHeader from '../components/ScreenHeader';
@@ -19,7 +22,7 @@ const chunk = (arr) => {
 };
 
 // Filtra (pesquisa + filtros), agrupa por marca (A-Z) e achata tudo numa lista única para a
-// FlatList: [cabeçalho, linha, linha, cabeçalho, ...]. `headers` guarda os índices dos
+// FlashList: [cabeçalho, linha, linha, cabeçalho, ...]. `headers` guarda os índices dos
 // cabeçalhos, que ficam colados ao topo ao fazer scroll.
 function buildList(cars, query, filters, lang, noBrand) {
   const terms = searchTerms(query);
@@ -46,7 +49,8 @@ function buildList(cars, query, filters, lang, noBrand) {
 export default function CollectionScreen({ navigation }) {
   const { t, lang } = useI18n();
   const { cars, loaded, numberOf } = useCars();
-  const width = useCardWidth();
+  const tabH = useBottomTabBarHeight(); // a lista passa por trás da barra de vidro
+  const listPad = useMemo(() => ({ paddingHorizontal: 16, paddingBottom: tabH + 16 }), [tabH]);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(NO_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -71,11 +75,12 @@ export default function CollectionScreen({ navigation }) {
       ) : (
         <View style={s.row}>
           {item.cars.map((car) => (
-            <CarCard key={car.id} car={car} no={numberOf(car.id)} width={width} onPress={openCar} />
+            <CarCard key={car.id} car={car} no={numberOf(car.id)} style={s.flex} onPress={openCar} />
           ))}
+          {item.cars.length === 1 ? <View style={s.flex} /> : null /* mantém a largura de um cartão */}
         </View>
       ),
-    [numberOf, width, openCar]
+    [numberOf, openCar]
   );
 
   return (
@@ -125,17 +130,16 @@ export default function CollectionScreen({ navigation }) {
         onClose={() => setSheetOpen(false)}
       />
 
-      <FlatList
+      <FlashList
         data={items}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         stickyHeaderIndices={headers}
-        contentContainerStyle={[s.list, !items.length && s.grow]}
+        contentContainerStyle={listPad}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        initialNumToRender={8}
-        maxToRenderPerBatch={6}
-        windowSize={7}
+        getItemType={(item) => item.type}
+        drawDistance={200}
         ListEmptyComponent={
           !loaded ? null : cars.length ? (
             <EmptyState
@@ -175,9 +179,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'baseline', gap: 8,
     paddingTop: 16, paddingBottom: 10, backgroundColor: C.bg, // opaco: o cabeçalho cola ao topo
   },
-  sectionTitle: { color: C.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
+  sectionTitle: { fontFamily: 'display', color: C.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   sectionCount: { color: C.muted, fontSize: 14, fontWeight: '600' },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  row: { flexDirection: 'row', gap: 12, paddingBottom: 14 }, // padding e não margem: a FlashList mede a célula
+  flex: { flex: 1 },
 
   searchRow: { flexDirection: 'row', gap: 10, margin: 16, marginBottom: 4 },
   filterBtn: {

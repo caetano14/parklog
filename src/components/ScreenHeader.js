@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '../i18n/I18nContext';
 import { C } from '../constants';
@@ -27,14 +28,13 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  title: { color: C.text, fontSize: 34, fontWeight: '800', letterSpacing: -1.2 },
+  title: { fontFamily: 'display', color: C.text, fontSize: 34, fontWeight: '800', letterSpacing: -1.2 },
   counter: {
     flexDirection: 'row', alignItems: 'baseline', gap: 6,
     borderWidth: 1.5, borderColor: C.accent, borderRadius: 999,
     paddingHorizontal: 14, paddingVertical: 6,
   },
-  num: { color: C.accent, fontSize: 20, fontWeight: '800' },
+  num: { fontFamily: 'display', color: C.accent, fontSize: 20, fontWeight: '800' },
   lbl: { color: C.muted, fontSize: 13, fontWeight: '600' },
 });

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from './AppText';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import Sheet from './Sheet';
 import { CAR_BRANDS } from '../data/carBrands';
@@ -45,23 +47,24 @@ export default function BrandPicker({ value, onChange, error }) {
             autoCapitalize="none"
           />
         </View>
-        <FlatList
-          data={brands}
-          keyExtractor={(b) => b.name}
-          style={s.list}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={<Text style={s.none}>{t('add.brandNone')}</Text>}
-          renderItem={({ item }) => {
-            const selected = item.name === value;
-            return (
-              <TouchableOpacity activeOpacity={0.7} style={s.row} onPress={() => pick(item.name)}>
-                <Text style={[s.name, selected && s.nameOn]}>{item.name}</Text>
-                <Text style={s.flag}>{flagOf(item.country)}</Text>
-                <View style={s.check}>{selected ? <Ionicons name="checkmark" size={18} color={C.text} /> : null}</View>
-              </TouchableOpacity>
-            );
-          }}
-        />
+        <View style={s.list}>
+          <FlashList
+            data={brands}
+            keyExtractor={(b) => b.name}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={<Text style={s.none}>{t('add.brandNone')}</Text>}
+            renderItem={({ item }) => {
+              const selected = item.name === value;
+              return (
+                <TouchableOpacity activeOpacity={0.7} style={s.row} onPress={() => pick(item.name)}>
+                  <Text style={[s.name, selected && s.nameOn]}>{item.name}</Text>
+                  <Text style={s.flag}>{flagOf(item.country)}</Text>
+                  <View style={s.check}>{selected ? <Ionicons name="checkmark" size={18} color={C.text} /> : null}</View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
       </Sheet>
     </View>
   );
@@ -87,8 +90,7 @@ const s = StyleSheet.create({
   searchInput: { flex: 1, color: C.text, fontSize: 16, paddingVertical: 12 },
   list: { flex: 1 },
   row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 4,
   },
   name: { flex: 1, color: C.text, fontSize: 16 },
   nameOn: { fontWeight: '800' },

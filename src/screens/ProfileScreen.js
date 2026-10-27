@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View,
-} from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import RarityChart from '../components/RarityChart';
 import ScreenHeader from '../components/ScreenHeader';
@@ -36,6 +36,7 @@ const InfoRow = ({ label, value }) => (
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
+  const tabH = useBottomTabBarHeight(); // o conteúdo passa por trás da barra de vidro
   const { cars, importCars } = useCars();
   const { saveToGallery, dailyBrand, setSetting } = useSettings();
   const [exporting, setExporting] = useState(false);
@@ -109,7 +110,7 @@ export default function ProfileScreen() {
   return (
     <View style={s.root}>
       <ScreenHeader title={t('profile.title')} />
-      <ScrollView contentContainerStyle={s.content}>
+      <ScrollView contentContainerStyle={[s.content, { paddingBottom: tabH + 24 }]}>
         <Text style={s.section}>{t('profile.language')}</Text>
         <View style={s.block}>
           <View style={s.segment}>
@@ -249,16 +250,16 @@ const s = StyleSheet.create({
 
   tiles: { flexDirection: 'row', gap: 10 },
   tile: { flex: 1, backgroundColor: C.field, borderRadius: RADIUS.field, padding: 14, gap: 4 },
-  tileValue: { color: C.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.8, marginTop: 6 },
+  tileValue: { fontFamily: 'display', color: C.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.8, marginTop: 6 },
   tileLabel: { color: C.muted, fontSize: 13 },
-  divider: { height: 1, backgroundColor: C.border, marginVertical: 14 },
+  divider: { height: 16 }, // só espaço: sem linhas retas
   subLabel: { color: C.muted, fontSize: 13, fontWeight: '600', marginBottom: 6 },
   rarityRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   rarityName: { flex: 1, color: C.text, fontSize: 15 },
   rarityCount: { color: C.text, fontSize: 15, fontWeight: '700' },
 
-  appName: { color: C.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  appName: { fontFamily: 'display', color: C.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
   tagline: { color: C.muted, fontSize: 14, lineHeight: 20, marginTop: 4 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7 },
   infoLabel: { color: C.muted, fontSize: 15 },

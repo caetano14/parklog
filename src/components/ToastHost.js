@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +34,6 @@ const s = StyleSheet.create({
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: C.gold },
   texts: { flex: 1 },
   label: { color: C.gold, fontSize: 12, fontWeight: '800' },
-  title: { color: C.text, fontSize: 17, fontWeight: '800', letterSpacing: -0.3, marginTop: 1 },
+  title: { fontFamily: 'display', color: C.text, fontSize: 17, fontWeight: '800', letterSpacing: -0.3, marginTop: 1 },
   desc: { color: C.muted, fontSize: 13, marginTop: 2 },
 });

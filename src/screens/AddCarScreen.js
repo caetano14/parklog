@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
-import {
-  ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platform,
-  ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
-} from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import BrandPicker from '../components/BrandPicker';
 import Chip from '../components/Chip';
 import ScreenHeader from '../components/ScreenHeader';
@@ -45,6 +45,7 @@ const Field = ({ label, optional, error, inputRef, ...props }) => {
 
 export default function AddCarScreen({ navigation }) {
   const { t } = useI18n();
+  const tabH = useBottomTabBarHeight();
   const { addCar } = useCars();
   const { saveToGallery } = useSettings();
   const [f, setF] = useState(EMPTY);
@@ -167,7 +168,7 @@ export default function AddCarScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenHeader title={t('add.title')} />
-      <ScrollView ref={scrollRef} contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={[s.form, { paddingBottom: tabH + 24 }]} keyboardShouldPersistTaps="handled">
         <TouchableOpacity
           activeOpacity={0.85}
           disabled={busy}
@@ -175,7 +176,7 @@ export default function AddCarScreen({ navigation }) {
           style={[s.photoBox, errors.photo && s.inputError]}
         >
           {f.photo ? (
-            <Image source={{ uri: f.photo }} style={s.photoImg} resizeMode="cover" />
+            <Image source={{ uri: f.photo }} style={s.photoImg} contentFit="cover" transition={200} cachePolicy="none" />
           ) : (
             <View style={s.photoEmpty}>
               <View style={s.iconCircle}>
