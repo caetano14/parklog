@@ -48,4 +48,4 @@ export const COUNTRIES = [
 export const flagOf = (name) => COUNTRIES.find((c) => c.name === name)?.flag ?? '🌍';
 
 // Informação da secção "Sobre" do Perfil: substitui pelo teu nome
-export const APP_INFO = { developer: 'O teu nome', version: '1.0.0' };
+export const APP_INFO = { developer: 'Miguel Caetano', version: '1.0.0' };
