@@ -2,7 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SETTINGS_KEY = '@parklog/settings';
-const DEFAULTS = { saveToGallery: false, dailyBrand: '', autoRecognize: false }; // desligado por defeito: só guarda na galeria se o utilizador quiser
+// Desligado por defeito: só guarda na galeria / envia fotos para reconhecer se o utilizador quiser.
+// onboarded: undefined = nunca decidido · false = ver a introdução outra vez · true = já viu
+// recPromptDismissed: o utilizador disse "Agora não" ao convite do reconhecimento
+const DEFAULTS = { saveToGallery: false, dailyBrand: '', autoRecognize: false, recPromptDismissed: false, onboarded: undefined };
 
 const SettingsContext = createContext(null);
 
@@ -20,6 +23,8 @@ export function SettingsProvider({ children }) {
             saveToGallery: saved.saveToGallery === true,
             autoRecognize: saved.autoRecognize === true,
             dailyBrand: typeof saved.dailyBrand === 'string' ? saved.dailyBrand : '',
+            recPromptDismissed: saved.recPromptDismissed === true,
+            onboarded: typeof saved.onboarded === 'boolean' ? saved.onboarded : undefined,
           });
         }
       })
@@ -33,7 +38,7 @@ export function SettingsProvider({ children }) {
   }, [settings, loaded]);
 
   const setSetting = useCallback((key, value) => setSettings((p) => ({ ...p, [key]: value })), []);
-  const value = useMemo(() => ({ ...settings, setSetting }), [settings, setSetting]);
+  const value = useMemo(() => ({ ...settings, loaded, setSetting }), [settings, loaded, setSetting]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }

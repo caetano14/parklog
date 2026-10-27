@@ -10,10 +10,10 @@ import { AchievementsProvider } from './src/context/AchievementsContext';
 import { CarsProvider } from './src/context/CarsContext';
 import { SettingsProvider } from './src/context/SettingsContext';
 import { I18nProvider } from './src/i18n/I18nContext';
-import RootNavigator from './src/navigation/RootNavigator';
+import AppRoot from './src/navigation/AppRoot';
 import { keepSplash } from './src/utils/splash';
 
-keepSplash(); // o ecrã de arranque só sai quando a navegação estiver pronta (ver RootNavigator)
+keepSplash(); // o ecrã de arranque só sai quando a navegação (ou a introdução) estiver pronta (ver AppRoot)
 
 export default function App() {
   // Inter = texto geral · Oswald = títulos, números e marcas (os nomes estão em FONTS, constants.js)
@@ -31,7 +31,7 @@ export default function App() {
           <CarsProvider>
             <AchievementsProvider>
               <StatusBar style="light" />
-              <RootNavigator />
+              <AppRoot />
               <ToastHost />
             </AchievementsProvider>
           </CarsProvider>

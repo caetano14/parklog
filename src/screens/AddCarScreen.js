@@ -18,6 +18,7 @@ import { countryOfBrand } from '../data/carBrands';
 import { modelSuggestions } from '../data/carModels';
 import { calculateRarity } from '../utils/rarityEngine';
 import RecognitionBanner from '../components/RecognitionBanner';
+import RecognitionOffer from '../components/RecognitionOffer';
 import { isRecognitionConfigured, recognizeCar } from '../services/recognition';
 import { yearOptions } from '../services/recognitionFormat';
 
@@ -51,7 +52,7 @@ export default function AddCarScreen({ navigation }) {
   const { t } = useI18n();
   const tabH = useBottomTabBarHeight();
   const { addCar } = useCars();
-  const { saveToGallery, autoRecognize } = useSettings();
+  const { saveToGallery, autoRecognize, recPromptDismissed, setSetting } = useSettings();
   const [f, setF] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
@@ -75,6 +76,9 @@ export default function AddCarScreen({ navigation }) {
   };
 
   const canRecognize = autoRecognize && isRecognitionConfigured();
+  // Convite a ativar o reconhecimento: já há foto, a opção está desligada e ainda não disse "Agora não"
+  const offerRecognition = Boolean(f.photo) && !busy && !autoRecognize && !recPromptDismissed
+    && isRecognitionConfigured() && rec.status === 'idle';
 
   // Reconhecimento automático: corre em segundo plano depois de a foto estar pronta
   const runRecognition = async (uri) => {
@@ -254,6 +258,12 @@ export default function AddCarScreen({ navigation }) {
           <Text style={s.link}>{t('add.gallery')}</Text>
         </TouchableOpacity>
 
+        {offerRecognition ? (
+          <RecognitionOffer
+            onEnable={() => { setSetting('autoRecognize', true); runRecognition(f.photo); }}
+            onDismiss={() => setSetting('recPromptDismissed', true)}
+          />
+        ) : null}
         <RecognitionBanner rec={rec} onApply={applyRec} onUndo={undoRec} onRetry={() => runRecognition(f.photo)} />
 
         <BrandPicker value={f.brand} onChange={(v) => set('brand', v)} error={errors.brand} />

@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import RarityChart from '../components/RarityChart';
 import ScreenHeader from '../components/ScreenHeader';
 import { useCars } from '../context/CarsContext';
 import { useSettings } from '../context/SettingsContext';
+import { useGalleryToggle } from '../hooks/useGalleryToggle';
 import { LANGUAGES, useI18n } from '../i18n/I18nContext';
 import { APP_INFO, C, RADIUS, RARITIES } from '../constants';
 import { isRecognitionConfigured } from '../services/recognition';
 import { exportGarage, importGarage } from '../utils/backup';
-import { requestGalleryPermission } from '../utils/photos';
 import { norm } from '../utils/text';
 
 // Cada idioma aparece sempre na sua própria língua
@@ -76,27 +76,7 @@ export default function ProfileScreen() {
     }
   };
 
-  // Ao ligar, pede logo a permissão; se for recusada, a opção fica desligada
-  const onToggleGallery = async (next) => {
-    if (!next) return setSetting('saveToGallery', false);
-    try {
-      const perm = await requestGalleryPermission();
-      if (perm.granted) return setSetting('saveToGallery', true);
-      Alert.alert(
-        t('profile.galleryDeniedTitle'),
-        t('profile.galleryDeniedMsg'),
-        perm.canAskAgain
-          ? undefined
-          : [
-              { text: t('common.cancel'), style: 'cancel' },
-              { text: t('cam.openSettings'), onPress: () => Linking.openSettings() },
-            ]
-      );
-    } catch (e) {
-      console.warn('Permissão da galeria indisponível', e);
-      Alert.alert(t('profile.galleryErrorTitle'), t('profile.galleryErrorMsg'));
-    }
-  };
+  const onToggleGallery = useGalleryToggle(); // ao ligar pede a permissão; se for recusada, fica desligado
 
   const stats = useMemo(() => {
     const brands = new Set();
