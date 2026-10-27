@@ -2,7 +2,7 @@ import { countryOfBrand } from '../data/carBrands';
 import { norm } from './text';
 
 export const NO_FILTERS = { rarity: null, year: null, country: null }; // null = Todas / Todos
-export const FILTER_COUNTRIES = ['Alemanha', 'Itália', 'Japão', 'EUA', 'Reino Unido', 'França'];
+export const FILTER_COUNTRIES = ['Alemanha', 'Itália', 'Japão', 'EUA', 'Reino Unido', 'França', 'Suécia', 'Coreia do Sul', 'Espanha', 'China'];
 
 // Intervalos de ano (as etiquetas estão nas traduções: filters.year.<chave>)
 const YEAR_TESTS = {

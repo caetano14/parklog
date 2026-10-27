@@ -4,13 +4,16 @@ import { Text, TextInput } from './AppText';
 import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import Sheet from './Sheet';
-import { CAR_BRANDS } from '../data/carBrands';
+import { CAR_BRANDS, findBrand } from '../data/carBrands';
 import { useI18n } from '../i18n/I18nContext';
 import { C, RADIUS, flagOf } from '../constants';
 import { norm } from '../utils/text';
 
-// Seletor de marca com pesquisa (autocomplete). Só deixa escolher marcas da lista, por isso
-// os dados ficam sempre consistentes e o motor de raridade nunca recebe "ferari".
+// "ferrari  f40" → "Ferrari F40": maiúscula no início de cada palavra
+const titleCase = (s) => s.trim().replace(/\s+/g, ' ').slice(0, 40).replace(/(^|[\s-])(\S)/g, (_, a, b) => a + b.toUpperCase());
+
+// Seletor de marca com pesquisa (autocomplete). A lista tem as marcas mais comuns; se faltar
+// uma, aparece a opção "Usar «…»" (a raridade fica Comum e o país escolhe-se à mão).
 export default function BrandPicker({ value, onChange, error }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -19,6 +22,12 @@ export default function BrandPicker({ value, onChange, error }) {
   const brands = useMemo(() => {
     const q = norm(query);
     return q ? CAR_BRANDS.filter((b) => norm(b.name).includes(q)) : CAR_BRANDS;
+  }, [query]);
+
+  // Marca escrita que não existe na lista (para a poder usar na mesma)
+  const custom = useMemo(() => {
+    const name = titleCase(query);
+    return name.length >= 2 && !findBrand(name) ? name : null;
   }, [query]);
 
   const close = () => { setOpen(false); setQuery(''); };
@@ -52,7 +61,13 @@ export default function BrandPicker({ value, onChange, error }) {
             data={brands}
             keyExtractor={(b) => b.name}
             keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<Text style={s.none}>{t('add.brandNone')}</Text>}
+            ListHeaderComponent={custom ? (
+              <TouchableOpacity activeOpacity={0.7} style={s.row} onPress={() => pick(custom)}>
+                <Ionicons name="add-circle-outline" size={20} color={C.text} />
+                <Text style={[s.name, s.nameOn]} numberOfLines={1}>{t('add.brandUse', { brand: custom })}</Text>
+              </TouchableOpacity>
+            ) : null}
+            ListEmptyComponent={custom ? null : <Text style={s.none}>{t('add.brandNone')}</Text>}
             renderItem={({ item }) => {
               const selected = item.name === value;
               return (

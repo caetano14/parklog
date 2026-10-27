@@ -9,6 +9,7 @@ import { useCars } from '../context/CarsContext';
 import { useSettings } from '../context/SettingsContext';
 import { LANGUAGES, useI18n } from '../i18n/I18nContext';
 import { APP_INFO, C, RADIUS, RARITIES } from '../constants';
+import { isRecognitionConfigured } from '../services/recognition';
 import { exportGarage, importGarage } from '../utils/backup';
 import { requestGalleryPermission } from '../utils/photos';
 import { norm } from '../utils/text';
@@ -38,7 +39,8 @@ export default function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
   const tabH = useBottomTabBarHeight(); // o conteúdo passa por trás da barra de vidro
   const { cars, importCars } = useCars();
-  const { saveToGallery, dailyBrand, setSetting } = useSettings();
+  const { saveToGallery, autoRecognize, dailyBrand, setSetting } = useSettings();
+  const recognitionReady = isRecognitionConfigured();
   const [exporting, setExporting] = useState(false);
 
   const [importing, setImporting] = useState(false);
@@ -145,6 +147,24 @@ export default function ProfileScreen() {
               onValueChange={onToggleGallery}
               trackColor={{ false: C.field, true: C.accent }}
               thumbColor={saveToGallery ? C.onAccent : C.muted}
+              ios_backgroundColor={C.field}
+            />
+          </View>
+        </View>
+
+        <Text style={s.section}>{t('profile.recognition')}</Text>
+        <View style={s.block}>
+          <View style={s.switchRow}>
+            <View style={s.switchText}>
+              <Text style={s.switchTitle}>{t('profile.recognitionTitle')}</Text>
+              <Text style={s.switchHint}>{recognitionReady ? t('profile.recognitionHint') : t('profile.recognitionOff')}</Text>
+            </View>
+            <Switch
+              value={autoRecognize && recognitionReady}
+              disabled={!recognitionReady}
+              onValueChange={(v) => setSetting('autoRecognize', v)}
+              trackColor={{ false: C.field, true: C.accent }}
+              thumbColor={autoRecognize && recognitionReady ? C.onAccent : C.muted}
               ios_backgroundColor={C.field}
             />
           </View>

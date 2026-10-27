@@ -38,9 +38,14 @@ export const COUNTRIES = [
   { name: 'Reino Unido', flag: '🇬🇧' }, { name: 'França', flag: '🇫🇷' },
   { name: 'Suécia', flag: '🇸🇪' }, { name: 'Coreia do Sul', flag: '🇰🇷' },
   { name: 'Espanha', flag: '🇪🇸' }, { name: 'Chéquia', flag: '🇨🇿' },
-  { name: 'Portugal', flag: '🇵🇹' }, { name: 'Outro', flag: '🌍' },
+  { name: 'Portugal', flag: '🇵🇹' }, { name: 'China', flag: '🇨🇳' },
+  { name: 'Índia', flag: '🇮🇳' }, { name: 'Países Baixos', flag: '🇳🇱' },
+  { name: 'Croácia', flag: '🇭🇷' }, { name: 'Roménia', flag: '🇷🇴' },
+  { name: 'Dinamarca', flag: '🇩🇰' }, { name: 'Austrália', flag: '🇦🇺' },
+  { name: 'Rússia', flag: '🇷🇺' }, { name: 'Outro', flag: '🌍' },
 ];
 
 export const flagOf = (name) => COUNTRIES.find((c) => c.name === name)?.flag ?? '🌍';
 
-export const APP_INFO = { developer: 'Miguel Caetano', version: '1.0.0' };
+// Informação da secção "Sobre" do Perfil: substitui pelo teu nome
+export const APP_INFO = { developer: 'O teu nome', version: '1.0.0' };

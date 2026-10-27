@@ -27,7 +27,7 @@ export default function RootNavigator() {
         }}
       >
         <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
-        <Stack.Screen name="CarDetail" component={CarDetailScreen} options={{ title: t('detail.title'), headerTransparent: true, headerTitle: '' }} />
+        <Stack.Screen name="CarDetail" component={CarDetailScreen} options={{ title: t('detail.title'), headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

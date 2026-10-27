@@ -1,0 +1,9 @@
+name = "parklog-recognize"
+main = "recognize-worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true      # URL público https://parklog-recognize.<subdomínio>.workers.dev
+preview_urls = false    # sem URLs de pré-visualização extra
+
+[vars]
+# Modelo de visão usado (barato e rápido chega). Confirma o nome atual em docs.claude.com > Models.
+ANTHROPIC_MODEL = "claude-haiku-5-5"

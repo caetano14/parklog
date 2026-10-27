@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,7 +15,11 @@ import { C, COUNTRIES, RADIUS, RARITIES } from '../constants';
 import { getPhotoLocation } from '../utils/location';
 import { compressPhoto, discardTemp, saveCopyToGallery } from '../utils/photos';
 import { countryOfBrand } from '../data/carBrands';
+import { modelSuggestions } from '../data/carModels';
 import { calculateRarity } from '../utils/rarityEngine';
+import RecognitionBanner from '../components/RecognitionBanner';
+import { isRecognitionConfigured, recognizeCar } from '../services/recognition';
+import { yearOptions } from '../services/recognitionFormat';
 
 const EMPTY = { photo: null, brand: '', model: '', year: '', country: '', rarity: 'Comum' };
 const MIN_YEAR = 1886;
@@ -47,7 +51,7 @@ export default function AddCarScreen({ navigation }) {
   const { t } = useI18n();
   const tabH = useBottomTabBarHeight();
   const { addCar } = useCars();
-  const { saveToGallery } = useSettings();
+  const { saveToGallery, autoRecognize } = useSettings();
   const [f, setF] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
@@ -56,13 +60,54 @@ export default function AddCarScreen({ navigation }) {
   const scrollRef = useRef(null);
   const modelRef = useRef(null);
   const yearRef = useRef(null);
+  const [rec, setRec] = useState({ status: 'idle' }); // reconhecimento: idle | loading | done | notcar | error
+  const recId = useRef(0); // identifica o pedido em curso: respostas de fotos antigas são ignoradas
+  const fRef = useRef(null); // valores atuais do formulário, para as respostas assíncronas
   const locationRef = useRef(null); // Promise com as coordenadas da foto tirada com a câmara
   const rarity = rarityManual ? f.rarity : calculateRarity(f.brand, f.model);
   const country = countryManual ? f.country : (countryOfBrand(f.brand) ?? ''); // país sugerido pela marca
+  const suggestions = useMemo(() => modelSuggestions(f.brand, f.model), [f.brand, f.model]); // modelos da marca
+  fRef.current = f;
 
   const set = (k, v) => {
     setF((p) => ({ ...p, [k]: v }));
     if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined }));
+  };
+
+  const canRecognize = autoRecognize && isRecognitionConfigured();
+
+  // Reconhecimento automático: corre em segundo plano depois de a foto estar pronta
+  const runRecognition = async (uri) => {
+    const id = ++recId.current;
+    setRec({ status: 'loading' });
+    try {
+      const data = await recognizeCar(uri);
+      if (id !== recId.current) return; // entretanto escolheu outra foto (ou guardou)
+      if (!data.isCar) return setRec({ status: 'notcar' });
+      // Só preenche o que está vazio, com marca da lista e confiança alta ou média; dá para desfazer
+      const cur = fRef.current;
+      const trust = Boolean(data.brand) && data.confidence !== 'low';
+      const fillBrand = trust && !cur.brand;
+      const fillModel = trust && !cur.model && Boolean(data.model);
+      if (fillBrand || fillModel) {
+        setF((p) => ({ ...p, brand: fillBrand ? data.brand : p.brand, model: fillModel ? data.model : p.model }));
+      }
+      setRec({ status: 'done', data, applied: fillBrand || fillModel, prev: { brand: cur.brand, model: cur.model } });
+    } catch (e) {
+      if (id === recId.current) setRec({ status: 'error', code: e?.code });
+    }
+  };
+
+  const applyRec = () => {
+    const d = rec.data;
+    setRec((r) => ({ ...r, applied: true, prev: { brand: f.brand, model: f.model } }));
+    // Marca fora da lista: só se aplica quando o utilizador toca em "Aplicar" (nunca sozinha)
+    setF((p) => ({ ...p, brand: d.brand ?? (d.brandText || p.brand), model: d.model || p.model }));
+  };
+
+  const undoRec = () => {
+    setF((p) => ({ ...p, brand: rec.prev.brand, model: rec.prev.model }));
+    setRec((r) => ({ ...r, applied: false }));
   };
 
   const pickPhoto = async (useCamera) => {
@@ -110,6 +155,8 @@ export default function AddCarScreen({ navigation }) {
       }
       if (f.photo && f.photo !== uri) discardTemp(f.photo); // liberta a foto anterior, se houver
       set('photo', uri);
+      if (canRecognize) runRecognition(uri);
+      else { recId.current += 1; setRec({ status: 'idle' }); }
     } catch (e) {
       console.warn('Falha ao obter a fotografia', e);
       Alert.alert(t('add.noPhotoTitle'), t('add.noPhotoMsg'));
@@ -153,9 +200,13 @@ export default function AddCarScreen({ navigation }) {
       });
       locationRef.current = null;
       setRarityManual(false);
+      recId.current += 1;
+      setRec({ status: 'idle' });
       setCountryManual(false);
       setF(EMPTY);
       setErrors({});
+      Keyboard.dismiss();
+      scrollRef.current?.scrollTo({ y: 0, animated: false }); // o formulário volta ao topo para o próximo carro
       navigation.navigate('Home');
     } catch (err) {
       console.warn('Falha ao guardar o carro', err);
@@ -203,6 +254,8 @@ export default function AddCarScreen({ navigation }) {
           <Text style={s.link}>{t('add.gallery')}</Text>
         </TouchableOpacity>
 
+        <RecognitionBanner rec={rec} onApply={applyRec} onUndo={undoRec} onRetry={() => runRecognition(f.photo)} />
+
         <BrandPicker value={f.brand} onChange={(v) => set('brand', v)} error={errors.brand} />
         <Field
           optional
@@ -215,6 +268,13 @@ export default function AddCarScreen({ navigation }) {
           returnKeyType="next"
           onSubmitEditing={() => yearRef.current?.focus()}
         />
+        {suggestions.length ? (
+          <View style={[s.chips, s.suggest]}>
+            {suggestions.map((m) => (
+              <Chip key={m} label={m} onPress={() => set('model', m)} />
+            ))}
+          </View>
+        ) : null}
         <Field
           optional
           label={t('add.year')}
@@ -226,6 +286,17 @@ export default function AddCarScreen({ navigation }) {
           keyboardType="number-pad"
           maxLength={4}
         />
+
+        {rec.status === 'done' && yearOptions(rec.data).length ? (
+          <View style={s.recYears}>
+            <Text style={s.hint}>{t('rec.years')}</Text>
+            <View style={s.chips}>
+              {yearOptions(rec.data).map((y) => (
+                <Chip key={y} label={String(y)} active={f.year === String(y)} onPress={() => set('year', f.year === String(y) ? '' : String(y))} />
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View style={s.group}>
           <Text style={s.label}>
@@ -306,6 +377,8 @@ const s = StyleSheet.create({
   inputError: { borderColor: C.danger },
   error: { color: C.danger, fontSize: 13 },
   hint: { color: C.muted, fontSize: 12 },
+  recYears: { gap: 8, marginTop: -6 },
+  suggest: { marginTop: -8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
   save: { backgroundColor: C.accent, borderRadius: RADIUS.card, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
