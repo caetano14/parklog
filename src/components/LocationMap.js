@@ -48,20 +48,33 @@ export default function LocationMap({ location, color, title }) {
       <TouchableOpacity
         activeOpacity={0.85}
         style={s.btn}
-        onPress={() => Linking.openURL(`http://maps.apple.com/?ll=${latitude},${longitude}&q=ParkLog`)}
+        onPress={() => Linking.openURL(
+          Platform.OS === 'android'
+            ? `geo:${latitude},${longitude}?q=${latitude},${longitude}`
+            : `http://maps.apple.com/?ll=${latitude},${longitude}&q=ParkLog`
+        )}
       >
         <Text style={s.btnTxt}>{t('detail.openMaps')}</Text>
       </TouchableOpacity>
     </View>
   );
 
+  // No Android o react-native-maps usa o Google Maps, que precisa de uma chave de API; sem ela
+  // a app fecha ao desenhar o mapa (um erro nativo que o SafeBoundary não apanha). Por isso o
+  // Android mostra só as coordenadas e o atalho para a app de mapas.
+  const nativeMap = Platform.OS === 'ios';
+
   return (
     <View style={s.wrap}>
       <Text style={s.title}>{title}</Text>
       <View style={s.map}>
-        <SafeBoundary fallback={fallback}>
-          <Map latitude={latitude} longitude={longitude} color={color} />
-        </SafeBoundary>
+        {nativeMap ? (
+          <SafeBoundary fallback={fallback}>
+            <Map latitude={latitude} longitude={longitude} color={color} />
+          </SafeBoundary>
+        ) : (
+          fallback
+        )}
       </View>
     </View>
   );

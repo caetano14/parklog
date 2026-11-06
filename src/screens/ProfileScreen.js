@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import RarityChart from '../components/RarityChart';
@@ -12,6 +12,7 @@ import { LANGUAGES, useI18n } from '../i18n/I18nContext';
 import { APP_INFO, C, RADIUS, RARITIES } from '../constants';
 import { isRecognitionConfigured } from '../services/recognition';
 import { exportGarage, importGarage } from '../utils/backup';
+import { daysSinceBackup } from '../utils/backupReminder';
 import { norm } from '../utils/text';
 
 // Cada idioma aparece sempre na sua própria língua
@@ -39,9 +40,10 @@ export default function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
   const tabH = useBottomTabBarHeight(); // o conteúdo passa por trás da barra de vidro
   const { cars, importCars } = useCars();
-  const { saveToGallery, autoRecognize, dailyBrand, setSetting } = useSettings();
+  const { saveToGallery, autoRecognize, dailyBrand, lastBackupAt, setSetting } = useSettings();
   const recognitionReady = isRecognitionConfigured();
   const [exporting, setExporting] = useState(false);
+  const backupDays = daysSinceBackup(lastBackupAt);
 
   const [importing, setImporting] = useState(false);
 
@@ -68,6 +70,8 @@ export default function ProfileScreen() {
     setExporting(true);
     try {
       await exportGarage();
+      // Conta quando a folha de partilha abriu sem erro (a app não sabe se o utilizador guardou mesmo)
+      setSetting('lastBackupAt', Date.now());
     } catch (e) {
       console.warn('Exportação falhou', e);
       Alert.alert(t('profile.exportErrorTitle'), t('profile.exportErrorMsg'));
@@ -177,7 +181,13 @@ export default function ProfileScreen() {
 
         <Text style={s.section}>{t('profile.backup')}</Text>
         <View style={s.block}>
-          <Text style={s.switchHint}>{t('profile.exportHint')}</Text>
+          <Text style={s.statusTxt}>
+            {backupDays === null ? t('profile.backupNone')
+              : backupDays === 0 ? t('profile.backupToday')
+              : backupDays === 1 ? t('profile.backupYesterday')
+              : t('profile.backupDays', { days: backupDays })}
+          </Text>
+          <Text style={s.switchHint}>{Platform.OS === 'ios' ? t('profile.exportHintIos') : t('profile.exportHintAndroid')}</Text>
           <TouchableOpacity
             activeOpacity={0.85}
             disabled={exporting || importing}
@@ -236,6 +246,7 @@ const s = StyleSheet.create({
     backgroundColor: C.field, borderWidth: 1, borderColor: C.borderStrong, borderRadius: RADIUS.field,
     color: C.text, fontSize: 16, paddingHorizontal: 14, paddingVertical: 12, marginTop: 12,
   },
+  statusTxt: { color: C.text, fontSize: 14, fontWeight: '600', marginBottom: 6 },
   exportBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: C.accent, borderRadius: RADIUS.field, paddingVertical: 14, marginTop: 14,

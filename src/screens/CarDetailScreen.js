@@ -9,6 +9,7 @@ import { useCars } from '../context/CarsContext';
 import { useI18n } from '../i18n/I18nContext';
 import { C, RADIUS, RARITIES, flagOf } from '../constants';
 import { formatDate, formatTime, registeredAt } from '../utils/dates';
+import { countryOf } from '../utils/filters';
 
 export default function CarDetailScreen({ route, navigation }) {
   const { t, lang } = useI18n();
@@ -20,11 +21,12 @@ export default function CarDetailScreen({ route, navigation }) {
 
   const color = RARITIES[car.rarity] ?? C.muted;
   const rarity = t(`rarity.${car.rarity}`, { defaultValue: car.rarity });
-  const country = car.country ? t(`country.${car.country}`, { defaultValue: car.country }) : '';
-  const when = registeredAt(car); // dia e hora a que o carro foi registado
+  const countryName = countryOf(car);
+  const country = countryName ? t(`country.${countryName}`, { defaultValue: countryName }) : '';
+  const when = registeredAt(car);
   const rows = [
     [t('detail.year'), car.year || '—'],
-    [t('detail.country'), car.country ? `${flagOf(car.country)} ${country}` : '—'],
+    [t('detail.country'), countryName ? `${flagOf(countryName)} ${country}` : '—'],
     [t('detail.number'), String(numberOf(car.id)).padStart(3, '0')],
     ...(when ? [[t('detail.date'), formatDate(when, lang)], [t('detail.time'), formatTime(when, lang)]] : []),
   ];
@@ -87,6 +89,16 @@ export default function CarDetailScreen({ route, navigation }) {
       >
         <Ionicons name="chevron-back" size={24} color={C.text} />
       </TouchableOpacity>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('EditCar', { id: car.id })}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={t('detail.edit')}
+        style={[s.back, s.edit, { top: insets.top + 8 }]}
+      >
+        <Ionicons name="create-outline" size={22} color={C.text} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -99,6 +111,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,10,10,0.6)',
     borderWidth: 1, borderColor: C.border,
   },
+  edit: { left: undefined, right: 16 },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 120 },
   bottomFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '65%' },
   info: { paddingHorizontal: 20, marginTop: -64 }, // sobe para cima do desvanecer da foto

@@ -90,7 +90,8 @@ export function AchievementsProvider({ children }) {
     if (fresh.length || !cur.seeded || next.deleted !== cur.deleted || next.firstUseAt !== cur.firstUseAt) {
       commit({ ...next, seeded: true });
     }
-    if (cur.seeded && added <= 1) notify(fresh); // sem avisos ao importar muitos carros // na 1.ª execução sincroniza em silêncio, sem uma enxurrada de avisos
+    if (cur.seeded && added <= 1) notify(fresh); // sem avisos ao importar vários carros nem na 1.ª execução (sincroniza em silêncio)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- notify é recriada em cada render; só reavaliar quando estes valores mudam
   }, [cars, loaded, ready, dailyBrand, state.deleted, state.langChanges]);
 
   return (

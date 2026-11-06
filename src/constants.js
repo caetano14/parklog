@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // Design system "Garagem Exótica": preto profundo + cinzentos metálicos (zinc)
@@ -47,4 +48,6 @@ export const COUNTRIES = [
 
 export const flagOf = (name) => COUNTRIES.find((c) => c.name === name)?.flag ?? '🌍';
 
-export const APP_INFO = { developer: 'Miguel Caetano', version: '1.0.0' };
+// Dados da secção "Sobre" do Perfil
+// A versão vem do app.json (campo "version"), para nunca ficar diferente da que está instalada
+export const APP_INFO = { developer: 'Miguel Caetano', version: Constants.expoConfig?.version ?? '1.0.0' };

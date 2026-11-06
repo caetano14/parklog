@@ -1,7 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SectionList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
-import { FlashList } from '@shopify/flash-list';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import CarCard from '../components/CarCard';
@@ -9,22 +8,17 @@ import EmptyState from '../components/EmptyState';
 import FiltersSheet from '../components/FiltersSheet';
 import ScreenHeader from '../components/ScreenHeader';
 import { useCars } from '../context/CarsContext';
+import { useSettings } from '../context/SettingsContext';
 import { useI18n } from '../i18n/I18nContext';
 import { C, RADIUS } from '../constants';
 import { NO_FILTERS, activeFilterCount, matchesFilters, matchesQuery, searchTerms } from '../utils/filters';
+import { COLUMNS, chunkRows } from '../utils/layout';
 import { norm } from '../utils/text';
 
-// Divide uma lista em linhas de 2 cartões
-const chunk = (arr) => {
-  const rows = [];
-  for (let i = 0; i < arr.length; i += 2) rows.push(arr.slice(i, i + 2));
-  return rows;
-};
-
-// Filtra (pesquisa + filtros), agrupa por marca (A-Z) e achata tudo numa lista única para a
-// FlashList: [cabeçalho, linha, linha, cabeçalho, ...]. `headers` guarda os índices dos
-// cabeçalhos, que ficam colados ao topo ao fazer scroll.
-function buildList(cars, query, filters, lang, noBrand) {
+// Filtra (pesquisa + filtros) e agrupa por marca (A-Z). Cada grupo é uma secção cujas linhas
+// são listas de `columns` cartões. O cabeçalho da secção cola ao topo: usa a SectionList nativa,
+// que faz isto de forma fiável (os cabeçalhos colados da FlashList falhavam no topo da lista).
+function buildSections(cars, query, filters, lang, noBrand, columns) {
   const terms = searchTerms(query);
   const groups = new Map();
   for (const c of cars) {
@@ -34,21 +28,17 @@ function buildList(cars, query, filters, lang, noBrand) {
     groups.get(key).cars.push(c);
   }
 
-  const items = [];
-  const headers = [];
-  [...groups.values()]
+  return [...groups.values()]
     .sort((a, b) => a.title.localeCompare(b.title, lang, { sensitivity: 'base' }))
-    .forEach((g) => {
-      headers.push(items.length);
-      items.push({ key: `h:${g.key}`, type: 'header', title: g.title, count: g.cars.length });
-      chunk(g.cars).forEach((row) => items.push({ key: `r:${row[0].id}`, type: 'row', cars: row }));
-    });
-  return { items, headers };
+    .map((g) => ({ key: g.key, title: g.title, count: g.cars.length, data: chunkRows(g.cars, columns) }));
 }
 
 export default function CollectionScreen({ navigation }) {
   const { t, lang } = useI18n();
   const { cars, loaded, numberOf } = useCars();
+  const { collectionView, setSetting } = useSettings();
+  const compact = collectionView === 'compact';
+  const columns = COLUMNS[compact ? 'compact' : 'large'];
   const tabH = useBottomTabBarHeight(); // a lista passa por trás da barra de vidro
   const listPad = useMemo(() => ({ paddingHorizontal: 16, paddingBottom: tabH + 16 }), [tabH]);
   const [query, setQuery] = useState('');
@@ -58,29 +48,33 @@ export default function CollectionScreen({ navigation }) {
   const noBrand = t('collection.noBrand');
   const activeCount = activeFilterCount(filters);
 
-  const { items, headers } = useMemo(
-    () => buildList(cars, deferredQuery, filters, lang, noBrand),
-    [cars, deferredQuery, filters, lang, noBrand]
+  const sections = useMemo(
+    () => buildSections(cars, deferredQuery, filters, lang, noBrand, columns),
+    [cars, deferredQuery, filters, lang, noBrand, columns]
   );
 
   const openCar = useCallback((id) => navigation.navigate('CarDetail', { id }), [navigation]);
-  const keyExtractor = useCallback((item) => item.key, []);
+  const keyExtractor = useCallback((row) => row[0].id, []);
+  const renderSectionHeader = useCallback(
+    ({ section }) => (
+      <View style={s.sectionHead}>
+        <Text style={s.sectionTitle}>{section.title}</Text>
+        <Text style={s.sectionCount}>{section.count}</Text>
+      </View>
+    ),
+    []
+  );
   const renderItem = useCallback(
-    ({ item }) =>
-      item.type === 'header' ? (
-        <View style={s.sectionHead}>
-          <Text style={s.sectionTitle}>{item.title}</Text>
-          <Text style={s.sectionCount}>{item.count}</Text>
-        </View>
-      ) : (
-        <View style={s.row}>
-          {item.cars.map((car) => (
-            <CarCard key={car.id} car={car} no={numberOf(car.id)} style={s.flex} onPress={openCar} />
-          ))}
-          {item.cars.length === 1 ? <View style={s.flex} /> : null /* mantém a largura de um cartão */}
-        </View>
-      ),
-    [numberOf, openCar]
+    ({ item: row }) => (
+      <View style={[s.row, compact && s.rowCompact]}>
+        {row.map((car) => (
+          <CarCard key={car.id} car={car} no={numberOf(car.id)} compact={compact} style={s.flex} onPress={openCar} />
+        ))}
+        {/* células vazias: os cartões da última linha mantêm a largura dos outros */}
+        {Array.from({ length: columns - row.length }, (_, i) => <View key={`pad${i}`} style={s.flex} />)}
+      </View>
+    ),
+    [numberOf, openCar, compact, columns]
   );
 
   return (
@@ -110,6 +104,16 @@ export default function CollectionScreen({ navigation }) {
 
         <TouchableOpacity
           activeOpacity={0.85}
+          style={s.filterBtn}
+          onPress={() => setSetting('collectionView', compact ? 'large' : 'compact')}
+          accessibilityRole="button"
+          accessibilityLabel={compact ? t('collection.viewLarge') : t('collection.viewCompact')}
+        >
+          <Ionicons name={compact ? 'grid-outline' : 'apps-outline'} size={22} color={C.text} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
           style={[s.filterBtn, activeCount > 0 && s.filterBtnOn]}
           onPress={() => setSheetOpen(true)}
           accessibilityLabel={t('filters.title')}
@@ -130,16 +134,17 @@ export default function CollectionScreen({ navigation }) {
         onClose={() => setSheetOpen(false)}
       />
 
-      <FlashList
-        data={items}
+      <SectionList
+        sections={sections}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        stickyHeaderIndices={headers}
+        renderSectionHeader={renderSectionHeader}
+        stickySectionHeadersEnabled
         contentContainerStyle={listPad}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        getItemType={(item) => item.type}
-        drawDistance={200}
+        initialNumToRender={8}
+        windowSize={7}
         ListEmptyComponent={
           !loaded ? null : cars.length ? (
             <EmptyState
@@ -182,6 +187,7 @@ const s = StyleSheet.create({
   sectionTitle: { fontFamily: 'display', color: C.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   sectionCount: { color: C.muted, fontSize: 14, fontWeight: '600' },
   row: { flexDirection: 'row', gap: 12, paddingBottom: 14 }, // padding e não margem: a FlashList mede a célula
+  rowCompact: { gap: 8, paddingBottom: 8 },
   flex: { flex: 1 },
 
   searchRow: { flexDirection: 'row', gap: 10, margin: 16, marginBottom: 4 },

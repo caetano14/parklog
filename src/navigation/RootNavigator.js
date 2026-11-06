@@ -2,6 +2,7 @@ import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator from './TabNavigator';
 import CarDetailScreen from '../screens/CarDetailScreen';
+import EditCarScreen from '../screens/EditCarScreen';
 import { useI18n } from '../i18n/I18nContext';
 import { hideSplash } from '../utils/splash';
 import { C } from '../constants';
@@ -28,6 +29,7 @@ export default function RootNavigator() {
       >
         <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
         <Stack.Screen name="CarDetail" component={CarDetailScreen} options={{ title: t('detail.title'), headerShown: false }} />
+        <Stack.Screen name="EditCar" component={EditCarScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

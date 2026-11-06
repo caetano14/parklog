@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "O ParkLog usa a câmara para fotografar os carros que encontras.",
+    "NSPhotoLibraryUsageDescription": "O ParkLog acede às tuas fotos para escolheres a imagem de um carro.",
+    "NSPhotoLibraryAddUsageDescription": "O ParkLog guarda na galeria uma cópia das fotos que tiras.",
+    "NSLocationWhenInUseUsageDescription": "O ParkLog usa a localização para marcar no mapa onde viste cada carro."
+  }
+}

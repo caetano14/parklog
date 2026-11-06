@@ -1,4 +1,4 @@
-import { normalizeRecognition, yearOptions } from '../src/services/recognitionFormat';
+import { normalizeRecognition, recognitionAction, singleYear, yearOptions } from '../src/services/recognitionFormat';
 
 const car = (over = {}) => ({ isCar: true, brand: 'BMW', model: 'M3', yearFrom: 2014, yearTo: 2018, confidence: 'high', ...over });
 
@@ -83,5 +83,34 @@ describe('yearOptions', () => {
   test('sem anos ou sem dados não dá opções', () => {
     expect(yearOptions({ yearFrom: null, yearTo: null })).toEqual([]);
     expect(yearOptions(null)).toEqual([]);
+  });
+});
+
+describe('recognitionAction', () => {
+  test('confiança alta com marca da lista preenche', () => {
+    expect(recognitionAction({ brand: 'Audi', confidence: 'high' })).toBe('fill');
+  });
+  test('confiança média ou baixa só sugere', () => {
+    expect(recognitionAction({ brand: 'Audi', confidence: 'medium' })).toBe('suggest');
+    expect(recognitionAction({ brand: 'Audi', confidence: 'low' })).toBe('suggest');
+  });
+  test('marca fora da lista só sugere, mesmo com confiança alta', () => {
+    expect(recognitionAction({ brand: null, brandText: 'Xyz', confidence: 'high' })).toBe('suggest');
+  });
+  test('sem dados só sugere', () => {
+    expect(recognitionAction(null)).toBe('suggest');
+  });
+});
+
+describe('singleYear', () => {
+  test('de e até iguais dá esse ano', () => {
+    expect(singleYear({ yearFrom: 1995, yearTo: 1995 })).toBe(1995);
+  });
+  test('intervalo não dá ano', () => {
+    expect(singleYear({ yearFrom: 2014, yearTo: 2016 })).toBeNull();
+  });
+  test('sem anos ou sem dados não dá ano', () => {
+    expect(singleYear({ yearFrom: null, yearTo: null })).toBeNull();
+    expect(singleYear(null)).toBeNull();
   });
 });

@@ -12,7 +12,7 @@ const toYear = (v) => {
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Devolve null se a resposta for inválida; { isCar: false } se não houver carro;
-// caso contrário { isCar, brand (só se estiver na lista das 40), brandText, model, yearFrom, yearTo, confidence }
+// caso contrário { isCar, brand (só se estiver na lista de marcas), brandText, model, yearFrom, yearTo, confidence }
 export function normalizeRecognition(raw) {
   if (!raw || typeof raw !== 'object' || typeof raw.isCar !== 'boolean') return null;
   if (!raw.isCar) return { isCar: false };
@@ -46,3 +46,10 @@ export const yearOptions = (d) => {
   if (!d?.yearFrom || !d?.yearTo || d.yearTo - d.yearFrom > 7) return [];
   return Array.from({ length: d.yearTo - d.yearFrom + 1 }, (_, i) => d.yearFrom + i);
 };
+
+// O que fazer com uma resposta: 'fill' preenche o formulário (confiança alta e marca da lista);
+// 'suggest' só mostra a sugestão com o botão "Aplicar" (confiança média ou baixa, ou marca fora da lista).
+export const recognitionAction = (d) => (d?.brand && d.confidence === 'high' ? 'fill' : 'suggest');
+
+// O ano, quando o modelo indicou um só (de e até iguais); null nos outros casos
+export const singleYear = (d) => (Number.isInteger(d?.yearFrom) && d.yearFrom === d.yearTo ? d.yearFrom : null);

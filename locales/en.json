@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "ParkLog uses the camera to photograph the cars you spot.",
+    "NSPhotoLibraryUsageDescription": "ParkLog accesses your photos so you can pick the picture of a car.",
+    "NSPhotoLibraryAddUsageDescription": "ParkLog saves a copy of the photos you take to your gallery.",
+    "NSLocationWhenInUseUsageDescription": "ParkLog uses your location to pin on the map where you spotted each car."
+  }
+}
